@@ -11,12 +11,15 @@ cp cmake-tlib/tcg/CMakeLists.txt "${SRC_DIR}/src/Infrastructure/src/Emulator/Cor
 cp cmake-tlib/LICENSE "${RECIPE_DIR}/tlib-LICENSE"
 cp "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/softfloat-3/COPYING.txt" "${RECIPE_DIR}/softfloat-3-COPYING.txt"
 
+export CFLAGS="${CFLAGS} -Wno-unknown-warning-option"
 export CXXFLAGS="${CXXFLAGS} -Wno-unknown-warning-option"
-HOST_ARCH=x86_64
-if [[ "${target_platform}" == "linux-aarch64" ]] ||  [[ "${target_platform}" == "osx-arm64" ]]; then
-    export CFLAGS="${CFLAGS} -Wno-clobbered -I${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/tcg"
-    export HOST_ARCH=aarch64
-fi
+
+CONF_FLAGS_FOR_CMAKE=()
+[[ "${target_platform}" == "linux-aarch64" ]] && CONF_FLAGS_FOR_CMAKE+=("-DHOST_ARCH=aarch64")
+[[ "${target_platform}" == "osx-arm64" ]] && CONF_FLAGS_FOR_CMAKE+=("-DCMAKE_OSX_ARCHITECTURES=arm64" "-DHOST_ARCH=aarch64")
+
+# linux-aarch64 or osx-arm64
+[[ "${target_platform}" == *"-a"*"64" ]] && export CFLAGS="${CFLAGS} -I${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/tcg"
 
 # Check weak implementations
 pushd "${SRC_DIR}/tools/building" > /dev/null
@@ -29,6 +32,7 @@ CORES=(
   "arm.be"
   "arm-m.le"
   "arm-m.be"
+  "arm64.le"
   "ppc.le"
   "ppc.be"
   "ppc64.le"
@@ -40,8 +44,7 @@ CORES=(
   "sparc.le"
   "sparc.be"
   "xtensa.le"
-  "arm64.le"
-  )
+)
 
 for core_config in "${CORES[@]}"; do
     CORE="${core_config%%.*}"
@@ -53,13 +56,12 @@ for core_config in "${CORES[@]}"; do
         "-GNinja"
         "-DTARGET_ARCH=$CORE"
         "-DTARGET_WORD_SIZE=$BITS"
-        "-DHOST_ARCH=$HOST_ARCH"
         "-DCMAKE_BUILD_TYPE=Release"
         "-DCMAKE_VERBOSE_MAKEFILE=ON"
         "$CORES_PATH"
+        ${CONF_FLAGS_FOR_CMAKE[@]}
     )
 
-    [[ "${target_platform}" == "osx-arm64" ]] && CMAKE_CONF_FLAGS+=("-DCMAKE_OSX_ARCHITECTURES=arm64" "-DHOST_ARCH=aarch64")
     [[ "$ENDIAN" == "be" ]] && CMAKE_CONF_FLAGS+=("-DTARGET_BIG_ENDIAN=1")
 
     CORE_DIR="$CORES_PATH/obj/Release/$CORE/$ENDIAN"
