@@ -14,7 +14,7 @@ cp "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/softfloat-3/COPYING.tx
 export CFLAGS="${CFLAGS} -Wno-unknown-warning-option"
 export CXXFLAGS="${CXXFLAGS} -Wno-unknown-warning-option"
 
-CONF_FLAGS_FOR_CMAKE=()
+CONF_FLAGS_FOR_CMAKE=("")
 [[ "${target_platform}" == "linux-aarch64" ]] && CONF_FLAGS_FOR_CMAKE+=("-DHOST_ARCH=aarch64")
 [[ "${target_platform}" == "osx-arm64" ]] && CONF_FLAGS_FOR_CMAKE+=("-DCMAKE_OSX_ARCHITECTURES=arm64" "-DHOST_ARCH=aarch64")
 
@@ -59,7 +59,7 @@ for core_config in "${CORES[@]}"; do
         "-DCMAKE_BUILD_TYPE=Release"
         "-DCMAKE_VERBOSE_MAKEFILE=ON"
         "$CORES_PATH"
-        ${CONF_FLAGS_FOR_CMAKE[@]}
+        "${CONF_FLAGS_FOR_CMAKE[@]}"
     )
 
     [[ "$ENDIAN" == "be" ]] && CMAKE_CONF_FLAGS+=("-DTARGET_BIG_ENDIAN=1")
