@@ -56,8 +56,9 @@ for core_config in "${CORES[@]}"; do
         BITS=64
     fi
 
+    export EXTRA_CMAKE_ARGS=""
     if [[ "$ENDIAN" == "be" ]]; then
-        export CMAKE_ARGS="-DTARGET_BIG_ENDIAN=1 ${CMAKE_ARGS}"
+        export EXTRA_CMAKE_ARGS="-DTARGET_BIG_ENDIAN=1"
     fi
 
     CORE_DIR="$CORES_PATH/obj/Release/$CORE/$ENDIAN"
@@ -68,6 +69,7 @@ for core_config in "${CORES[@]}"; do
             -DTARGET_WORD_SIZE="${BITS}" \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
+            ${EXTRA_CMAKE_ARGS} \
             ${CMAKE_ARGS} \
             ${CORES_PATH}
 

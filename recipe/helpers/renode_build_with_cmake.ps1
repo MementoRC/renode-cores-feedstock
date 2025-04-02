@@ -50,8 +50,9 @@ foreach ($core_config in $CORES) {
     $ENDIAN = $core_config.Split('.')[1]
     $BITS = if ($CORE -match "64") { 64 } else { 32 }
 
+    $EXTRA_CMAKE_ARGS = ""
     if ($ENDIAN -eq "be") {
-        $CMAKE_ARGS = "-DTARGET_BIG_ENDIAN=1 $CMAKE_ARGS"
+        $EXTRA_CMAKE_ARGS = "-DTARGET_BIG_ENDIAN=1"
     }
 
     # Build and install (combined paths and commands)
@@ -64,6 +65,7 @@ foreach ($core_config in $CORES) {
             -DCMAKE_BUILD_TYPE=Release `
             -DHOST_ARCH=i386 `
             -DCMAKE_VERBOSE_MAKEFILE=ON `
+            $EXTRA_CMAKE_ARGS `
             $CMAKE_ARGS `
             $CORES_PATH
         & $CMAKE --build . -j $cpuCount
