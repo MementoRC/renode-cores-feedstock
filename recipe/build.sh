@@ -12,21 +12,23 @@ cp cmake-tlib/LICENSE "${RECIPE_DIR}/tlib-LICENSE"
 cp "${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/softfloat-3/COPYING.txt" "${RECIPE_DIR}/softfloat-3-COPYING.txt"
 
 export CFLAGS="${CFLAGS} -Wno-unknown-warning-option"
+export CFLAGS="${CFLAGS} -I${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/tcg"
 export CXXFLAGS="${CXXFLAGS} -Wno-unknown-warning-option"
 
-CONF_FLAGS_FOR_CMAKE=("")
-[[ "${target_platform}" == "linux-aarch64" ]] && CONF_FLAGS_FOR_CMAKE+=("-DHOST_ARCH=aarch64")
-[[ "${target_platform}" == "osx-arm64" ]] && CONF_FLAGS_FOR_CMAKE+=("-DCMAKE_OSX_ARCHITECTURES=arm64" "-DHOST_ARCH=aarch64")
-
-# linux-aarch64 or osx-arm64
-[[ "${target_platform}" == *"-a"*"64" ]] && export CFLAGS="${CFLAGS} -I${SRC_DIR}/src/Infrastructure/src/Emulator/Cores/tlib/tcg"
+if [[ "${target_platform}" == "linux-aarch64" ]]; then
+    export CMAKE_ARGS="-DHOST_ARCH=aarch64 ${CMAKE_ARGS}"
+fi
+if [[ "${target_platform}" == "osx-arm64" ]]; then
+    export CMAKE_ARGS="-DCMAKE_OSX_ARCHITECTURES=arm64 ${CMAKE_ARGS}"
+    export CMAKE_ARGS="-DHOST_ARCH=aarch64 ${CMAKE_ARGS}"
+fi
 
 # Check weak implementations
 pushd "${SRC_DIR}/tools/building" > /dev/null
   ./check_weak_implementations.sh
 popd > /dev/null
 
-CORES_PATH="${SRC_DIR}/src/Infrastructure/src/Emulator/Cores"
+export CORES_PATH=${SRC_DIR}/src/Infrastructure/src/Emulator/Cores
 CORES=(
   "arm.le"
   "arm.be"
@@ -50,24 +52,25 @@ for core_config in "${CORES[@]}"; do
     CORE="${core_config%%.*}"
     ENDIAN="${core_config##*.}"
     BITS=32
-    [[ "$CORE" == *"64"* ]] && BITS=64
+    if [[ "$CORE" == *"64"* ]]; then
+        BITS=64
+    fi
 
-    CMAKE_CONF_FLAGS=(
-        "-GNinja"
-        "-DTARGET_ARCH=$CORE"
-        "-DTARGET_WORD_SIZE=$BITS"
-        "-DCMAKE_BUILD_TYPE=Release"
-        "-DCMAKE_VERBOSE_MAKEFILE=ON"
-        "$CORES_PATH"
-        "${CONF_FLAGS_FOR_CMAKE[@]}"
-    )
-
-    [[ "$ENDIAN" == "be" ]] && CMAKE_CONF_FLAGS+=("-DTARGET_BIG_ENDIAN=1")
+    if [[ "$ENDIAN" == "be" ]]; then
+        export CMAKE_ARGS="-DTARGET_BIG_ENDIAN=1 ${CMAKE_ARGS}"
+    fi
 
     CORE_DIR="$CORES_PATH/obj/Release/$CORE/$ENDIAN"
     mkdir -p "$CORE_DIR"
     pushd "$CORE_DIR" > /dev/null
-        cmake "${CMAKE_CONF_FLAGS[@]}"
+        cmake -GNinja \
+            -DTARGET_ARCH="${CORE}" \
+            -DTARGET_WORD_SIZE="${BITS}" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            ${CMAKE_ARGS} \
+            ${CORES_PATH}
+
         cmake --build .
         mkdir -p "$CORES_PATH/bin/Release/lib"
         cp -u -v tlib/*.so "$CORES_PATH/bin/Release/lib/"
@@ -79,4 +82,3 @@ mkdir -p "${PREFIX}/lib/${PKG_NAME}"
 tar -c -C "${CORES_PATH}/bin/Release/lib" . | tar -x -C "${PREFIX}/lib/${PKG_NAME}"
 
 exit 0
-

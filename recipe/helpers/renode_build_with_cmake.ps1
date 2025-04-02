@@ -7,6 +7,7 @@ $cpuCount = (Get-CimInstance Win32_Processor).NumberOfLogicalProcessors
 $SRC_DIR = & cmd.exe /c echo %SRC_DIR%
 $PREFIX = & cmd.exe /c echo %PREFIX%
 $PKG_NAME = & cmd.exe /c echo %PKG_NAME%
+$CMAKE_ARGS = & cmd.exe /c echo %CMAKE_ARGS%
 
 # Check for empty environment variables
 if ([string]::IsNullOrEmpty($SRC_DIR)) { throw "SRC_DIR is empty" }
@@ -49,23 +50,22 @@ foreach ($core_config in $CORES) {
     $ENDIAN = $core_config.Split('.')[1]
     $BITS = if ($CORE -match "64") { 64 } else { 32 }
 
-    # Construct CMake arguments dynamically
-    $cmakeArgs = @(
-        "-GNinja",
-        "-DTARGET_ARCH=$CORE",
-        "-DTARGET_WORD_SIZE=$BITS",
-        "-DCMAKE_BUILD_TYPE=Release",
-        "-DHOST_ARCH=i386",
-        "-DCMAKE_VERBOSE_MAKEFILE=ON",
-        $CORES_PATH
-    )
-    if ($ENDIAN -eq "be") { $cmakeArgs += "-DTARGET_BIG_ENDIAN=1" }
+    if ($ENDIAN -eq "be") {
+        $CMAKE_ARGS = "-DTARGET_BIG_ENDIAN=1 $CMAKE_ARGS"
+    }
 
     # Build and install (combined paths and commands)
     $buildDir = "$CORES_PATH/obj/Release/$CORE/$ENDIAN"
     New-Item -ItemType Directory -Path $buildDir -Force | Out-Null
     Push-Location $buildDir
-        & $CMAKE @cmakeArgs
+        & $CMAKE -GNinja `
+            -DTARGET_ARCH=$CORE `
+            -DTARGET_WORD_SIZE=$BITS `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DHOST_ARCH=i386 `
+            -DCMAKE_VERBOSE_MAKEFILE=ON `
+            $CMAKE_ARGS `
+            $CORES_PATH
         & $CMAKE --build . -j $cpuCount
         Copy-Item "tlib/*.so" "$CORES_PATH/bin/Release/lib" -Force -Verbose
     Pop-Location
