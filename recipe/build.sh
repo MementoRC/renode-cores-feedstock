@@ -59,7 +59,7 @@ for core_config in "${CORES[@]}"; do
         "-DCMAKE_BUILD_TYPE=Release"
         "-DCMAKE_VERBOSE_MAKEFILE=ON"
         "$CORES_PATH"
-        "${CONF_FLAGS_FOR_CMAKE[@]}"
+       "${CMAKE_FLAGS}"
     )
 
     [[ "$ENDIAN" == "be" ]] && CMAKE_CONF_FLAGS+=("-DTARGET_BIG_ENDIAN=1")
