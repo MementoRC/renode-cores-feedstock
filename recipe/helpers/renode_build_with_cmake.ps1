@@ -23,14 +23,14 @@ Copy-Item -Path "$SRC_DIR/cmake-tlib/tcg/CMakeLists.txt" -Destination "$SRC_DIR/
 Copy-Item -Path "$SRC_DIR/cmake-tlib/LICENSE" -Destination "$Env:RECIPE_DIR/tlib-LICENSE" -Force
 Copy-Item "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/tlib/softfloat-3/COPYING.txt" "$Env:RECIPE_DIR/softfloat-3-COPYING.txt" -Force
 
+$env:PATH = "${env:BUILD_PREFIX}/Library/mingw-w64/bin;${env:BUILD_PREFIX}/Library/bin;${env:PREFIX}/Library/bin;${env:PREFIX}/bin;${env:PATH}"
+$env:CXXFLAGS = "$env:CXXFLAGS -Wno-unused-function -Wno-maybe-uninitialized"
+$env:CFLAGS = "$env:CFLAGS -Wno-unused-function -Wno-maybe-uninitialized"
+
 # Check weak implementations (using combined path)
 pushd $SRC_DIR/tools/building
     & bash.exe -c ". './check_weak_implementations.sh'"
 popd
-
-$env:PATH = "${env:BUILD_PREFIX}/Library/mingw-w64/bin;${env:BUILD_PREFIX}/Library/bin;${env:PREFIX}/Library/bin;${env:PREFIX}/bin;${env:PATH}"
-$env:CXXFLAGS = "$env:CXXFLAGS -Wno-unused-function -Wno-maybe-uninitialized"
-$env:CFLAGS = "$env:CFLAGS -Wno-unused-function -Wno-maybe-uninitialized"
 
 # This is needed because of the internal use of -Werror, which transform the warning about -fPIC into an error
 # It is not overridable by CFLAGS update (at least, I did not figure out how)
