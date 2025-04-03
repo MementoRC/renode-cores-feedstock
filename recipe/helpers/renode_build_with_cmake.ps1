@@ -28,9 +28,10 @@ $env:CXXFLAGS = "$env:CXXFLAGS -Wno-unused-function -Wno-maybe-uninitialized"
 $env:CFLAGS = "$env:CFLAGS -Wno-unused-function -Wno-maybe-uninitialized"
 
 # Check weak implementations (using combined path)
-pushd $SRC_DIR/tools/building
-    & bash.exe -c "CC=`cygpath -u ${env:BUILD_PREFIX}`/Library/bin/x86_64-w64-mingw32-gcc ./check_weak_implementations.sh"
-popd
+$BUILD_PREFIX = ${env:BUILD_PREFIX} -replace '\\', '/'
+Push-Location "$SRC_DIR/tools/building"
+    & bash.exe -c "CC=$BUILD_PREFIX . './check_weak_implementations.sh'"
+Pop-Location
 
 # This is needed because of the internal use of -Werror, which transform the warning about -fPIC into an error
 # It is not overridable by CFLAGS update (at least, I did not figure out how)
