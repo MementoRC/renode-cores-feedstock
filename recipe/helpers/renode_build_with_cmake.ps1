@@ -25,7 +25,7 @@ Copy-Item "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/tlib/softfloat-3/COPYI
 
 $env:PATH = "${env:BUILD_PREFIX}/Library/mingw-w64/bin;${env:BUILD_PREFIX}/Library/bin;${env:PREFIX}/Library/bin;${env:PREFIX}/bin;${env:PATH}"
 $env:CXXFLAGS = "$env:CXXFLAGS -Wno-unused-function -Wno-maybe-uninitialized"
-$env:CFLAGS = "$env:CFLAGS -Wno-unused-function -Wno-maybe-uninitialized -I$SRC_DIR/src/Infrastructure/src/Emulator/Cores/tlib/tcg/arch/i386"
+$env:CFLAGS = "$env:CFLAGS -Wno-unused-function -Wno-maybe-uninitialized"
 
 # Check weak implementations (using combined path)
 pushd $SRC_DIR/tools/building
@@ -60,13 +60,13 @@ foreach ($core_config in $CORES) {
     New-Item -ItemType Directory -Path $buildDir -Force | Out-Null
     Push-Location $buildDir
         & $CMAKE -GNinja `
-            -DTARGET_ARCH=$CORE `
-            -DTARGET_WORD_SIZE=$BITS `
+            "-DTARGET_ARCH=$CORE" `
+            "-DTARGET_WORD_SIZE=$BITS" `
             -DCMAKE_BUILD_TYPE=Release `
             -DHOST_ARCH=i386 `
             -DCMAKE_VERBOSE_MAKEFILE=ON `
-            $EXTRA_CMAKE_ARGS `
-            $CMAKE_ARGS `
+            "$EXTRA_CMAKE_ARGS" `
+            "$CMAKE_ARGS" `
             $CORES_PATH
         & $CMAKE --build . -j $cpuCount
         Copy-Item "tlib/*.so" "$CORES_PATH/bin/Release/lib" -Force -Verbose
