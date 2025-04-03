@@ -29,7 +29,7 @@ $env:CFLAGS = "$env:CFLAGS -Wno-unused-function -Wno-maybe-uninitialized"
 
 # Check weak implementations (using combined path)
 pushd $SRC_DIR/tools/building
-    & CC="${env:BUILD_PREFIX}"/Library/bin/x86_64-w64-mingw32-gcc bash.exe -c ". './check_weak_implementations.sh'"
+    & bash.exe -c "CC=${env:BUILD_PREFIX}/Library/bin/x86_64-w64-mingw32-gcc ./check_weak_implementations.sh"
 popd
 
 # This is needed because of the internal use of -Werror, which transform the warning about -fPIC into an error
