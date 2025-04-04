@@ -7,6 +7,8 @@ $cpuCount = (Get-CimInstance Win32_Processor).NumberOfLogicalProcessors
 $SRC_DIR = & cmd.exe /c echo %SRC_DIR%
 $PREFIX = & cmd.exe /c echo %PREFIX%
 $PKG_NAME = & cmd.exe /c echo %PKG_NAME%
+$CMAKE_ARGS = & cmd.exe /c echo %CMAKE_ARGS%
+$CC = & cmd.exe /c echo %CC%
 
 # Check for empty environment variables
 if ([string]::IsNullOrEmpty($SRC_DIR)) { throw "SRC_DIR is empty" }
@@ -22,14 +24,15 @@ Copy-Item -Path "$SRC_DIR/cmake-tlib/tcg/CMakeLists.txt" -Destination "$SRC_DIR/
 Copy-Item -Path "$SRC_DIR/cmake-tlib/LICENSE" -Destination "$Env:RECIPE_DIR/tlib-LICENSE" -Force
 Copy-Item "$SRC_DIR/src/Infrastructure/src/Emulator/Cores/tlib/softfloat-3/COPYING.txt" "$Env:RECIPE_DIR/softfloat-3-COPYING.txt" -Force
 
-# Check weak implementations (using combined path)
-pushd $SRC_DIR/tools/building
-    & bash.exe -c ". './check_weak_implementations.sh'"
-popd
-
 $env:PATH = "${env:BUILD_PREFIX}/Library/mingw-w64/bin;${env:BUILD_PREFIX}/Library/bin;${env:PREFIX}/Library/bin;${env:PREFIX}/bin;${env:PATH}"
 $env:CXXFLAGS = "$env:CXXFLAGS -Wno-unused-function -Wno-maybe-uninitialized"
 $env:CFLAGS = "$env:CFLAGS -Wno-unused-function -Wno-maybe-uninitialized"
+
+# Check weak implementations (using combined path)
+$BUILD_PREFIX = ${env:BUILD_PREFIX} -replace '\\', '/'
+Push-Location "$SRC_DIR/tools/building"
+    & bash.exe -c "CC=$CC . './check_weak_implementations.sh'"
+Pop-Location
 
 # This is needed because of the internal use of -Werror, which transform the warning about -fPIC into an error
 # It is not overridable by CFLAGS update (at least, I did not figure out how)
@@ -49,23 +52,24 @@ foreach ($core_config in $CORES) {
     $ENDIAN = $core_config.Split('.')[1]
     $BITS = if ($CORE -match "64") { 64 } else { 32 }
 
-    # Construct CMake arguments dynamically
-    $cmakeArgs = @(
-        "-GNinja",
-        "-DTARGET_ARCH=$CORE",
-        "-DTARGET_WORD_SIZE=$BITS",
-        "-DCMAKE_BUILD_TYPE=Release",
-        "-DHOST_ARCH=i386",
-        "-DCMAKE_VERBOSE_MAKEFILE=ON",
-        $CORES_PATH
-    )
-    if ($ENDIAN -eq "be") { $cmakeArgs += "-DTARGET_BIG_ENDIAN=1" }
+    $EXTRA_CMAKE_ARGS = ""
+    if ($ENDIAN -eq "be") {
+        $EXTRA_CMAKE_ARGS = "-DTARGET_BIG_ENDIAN=1"
+    }
 
     # Build and install (combined paths and commands)
     $buildDir = "$CORES_PATH/obj/Release/$CORE/$ENDIAN"
     New-Item -ItemType Directory -Path $buildDir -Force | Out-Null
     Push-Location $buildDir
-        & $CMAKE @cmakeArgs
+        & $CMAKE -GNinja `
+            "-DTARGET_ARCH=$CORE" `
+            "-DTARGET_WORD_SIZE=$BITS" `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DHOST_ARCH=i386 `
+            -DCMAKE_VERBOSE_MAKEFILE=ON `
+            "$EXTRA_CMAKE_ARGS" `
+            "$CMAKE_ARGS" `
+            $CORES_PATH
         & $CMAKE --build . -j $cpuCount
         Copy-Item "tlib/*.so" "$CORES_PATH/bin/Release/lib" -Force -Verbose
     Pop-Location
