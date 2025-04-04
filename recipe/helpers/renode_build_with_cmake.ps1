@@ -8,6 +8,7 @@ $SRC_DIR = & cmd.exe /c echo %SRC_DIR%
 $PREFIX = & cmd.exe /c echo %PREFIX%
 $PKG_NAME = & cmd.exe /c echo %PKG_NAME%
 $CMAKE_ARGS = & cmd.exe /c echo %CMAKE_ARGS%
+$CC = & cmd.exe /c echo %CC%
 
 # Check for empty environment variables
 if ([string]::IsNullOrEmpty($SRC_DIR)) { throw "SRC_DIR is empty" }
@@ -30,7 +31,7 @@ $env:CFLAGS = "$env:CFLAGS -Wno-unused-function -Wno-maybe-uninitialized"
 # Check weak implementations (using combined path)
 $BUILD_PREFIX = ${env:BUILD_PREFIX} -replace '\\', '/'
 Push-Location "$SRC_DIR/tools/building"
-    & bash.exe -c "CC=$BUILD_PREFIX/Library/bin/x86_64-w64-mingw32-gcc.exe . './check_weak_implementations.sh'"
+    & bash.exe -c "CC=$CC . './check_weak_implementations.sh'"
 Pop-Location
 
 # This is needed because of the internal use of -Werror, which transform the warning about -fPIC into an error
